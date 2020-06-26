@@ -45,6 +45,12 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
     && ln -s $(composer config --global home) /root/composer
 ENV PATH=$PATH:/root/composer/vendor/bin COMPOSER_ALLOW_SUPERUSER=1
 
+# Install CodeSniffer Drupal coding standards.
+RUN composer global require drupal/coder
+RUN ln -s ~/.composer/vendor/bin/phpcs /usr/local/bin
+RUN ln -s ~/.composer/vendor/bin/phpcbf /usr/local/bin
+RUN phpcs --config-set installed_paths ~/.composer/vendor/drupal/coder/coder_sniffer
+
 # Install prestissimo (composer plugin). Plugin that downloads packages in parallel to speed up the installation process
 # After release of Composer 2.x, remove prestissimo, because parallelism already merged into Composer 2.x branch:
 # https://github.com/composer/composer/pull/7904
