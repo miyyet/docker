@@ -1,0 +1,87 @@
+version: '3.3'
+services:
+  db:
+    image: mariadb:latest
+    #    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ajihal
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    networks:
+      - backend
+    ports:
+      - 3306:3306
+    volumes:
+    - "./mysql:/var/lib/mysql"
+
+  adminer:
+    image: adminer
+    #restart: always
+    networks:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.rule=Host(`${ADMINER_URL}`)"
+      - "traefik.http.routers.adminer.entrypoints=web"
+
+  php:
+    build: ./php-fpm
+    ports:
+      - "9000:9000"
+    volumes:
+      - ../src:/var/www
+    networks:
+      - backend
+
+  nginx:
+    image: nginx
+    container_name: drupal_nginx
+    environment:
+      - NGINX_PORT=80
+    volumes:
+      - ../src:/var/www
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`${BACKEND_URL}`)"
+      - "traefik.http.routers.nginx.entrypoints=web"
+
+#  gatsby:
+#    build: ./gatsby
+#    command: gatsby develop -p 80
+#    volumes:
+#      - ../front:/app
+#    working_dir: /app
+#    networks:
+#      - frontend
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.frontend.rule=Host(`${SITE_URL}`)"
+#      - "traefik.http.routers.frontend.entrypoints=web"
+
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - backend
+      - frontend
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
